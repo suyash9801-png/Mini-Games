@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#11152d" />
+  <title>Orbit Arcade — Mini Games</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <section id="home" class="screen active" aria-label="Orbit Arcade home">
+      <header class="topbar"><button class="icon-button" aria-label="Settings">⚙</button><a class="brand" href="#home"><i></i>ORBIT <b>ARCADE</b></a><button class="icon-button" id="statsButton" aria-label="Your stats">◔</button></header>
+      <div class="hero"><p class="eyebrow">PLAYFUL PRECISION</p><h1>Pick your<br><em>next challenge.</em></h1><div class="hero-orbit"><span></span><span></span><b>✦</b></div></div>
+      <section class="games"><div class="section-heading"><h2>GAME ROOM</h2><span>01 / 06</span></div><div id="gameGrid" class="game-grid"></div></section>
+    </section>
+
+    <section id="play" class="screen game-screen" aria-label="Circle Accuracy game">
+      <header class="game-top"><button class="quit" id="quitGame" aria-label="Return home">×</button><div><span>CIRCLE ACCURACY</span><strong>ANY SIZE. ONE CENTER.</strong></div><button class="clear" id="clearCanvas">CLEAR</button></header>
+      <p class="draw-hint" id="drawHint">Draw a circle around the center dot. Any size is allowed.</p>
+      <div class="canvas-wrap" id="canvasWrap"><canvas id="drawCanvas"></canvas><div class="center-dot" aria-label="Fixed center dot"></div></div>
+      <section id="inlineResult" class="inline-result" aria-live="polite" aria-label="Attempt score">
+        <div class="score-block"><h1 id="mainScore">0.00%</h1><h2 id="resultMessage">Keep Practicing!</h2></div>
+        <div id="newBest" class="new-best">🏆 NEW PERSONAL BEST!</div>
+        <p id="insight" class="insight"></p>
+        <div class="stat-grid" id="statGrid"></div>
+        <button class="secondary share-inline" id="shareButton">SHARE SCORE</button>
+      </section>
+    </section>
+  </main>
+  <div id="toast" class="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
