@@ -1,21 +1,249 @@
-const games=[{name:'Circle Accuracy',active:true,class:'circle-card'},{name:'Reaction Rush',emoji:'⚡',color:'#ff9b6b'},{name:'Memory Match',emoji:'🧠',color:'#58b9d0'},{name:'Line Sprint',emoji:'📏',color:'#d075c6'},{name:'Color Pop',emoji:'🎨',color:'#86bc68'},{name:'Cup Toss',emoji:'🏓',color:'#e2b656'}];
-const modes=[{id:'classic',icon:'∞',tint:'#eeeaff',title:'CLASSIC',text:'No rush. Take your time and find your flow.'},{id:'challenge',icon:'3',tint:'#ffe9f0',title:'3-SECOND CHALLENGE',text:'Three seconds. One brilliant orbit.'},{id:'speed',icon:'↯',tint:'#e2f8f6',title:'SPEED MODE',text:'Draw accurately, then race your time.'}];
-const $=s=>document.querySelector(s), screens=document.querySelectorAll('.screen');let mode='classic',points=[],drawing=false,startedAt=0,elapsed=0,challengeTimer,gameReady=false;
-const bestKey='orbit-circle-best';const getBest=()=>Number(localStorage.getItem(bestKey)||0);const fmt=n=>`${n.toFixed(2)}%`;
-function show(id){screens.forEach(s=>s.classList.toggle('active',s.id===id));window.scrollTo(0,0);if(id==='modes') updateBest();}
-function updateBest(){const b=getBest();$('#modeBest').textContent=b?fmt(b):'NO SCORE YET'}
-function renderHome(){ $('#gameGrid').innerHTML=games.map(g=>g.active?`<button class="game-card circle-card" id="openCircle"><div class="circle-art"></div><h3>${g.name}<small>DRAW TO WIN</small></h3></button>`:`<button class="game-card soon" disabled style="--bg:${g.color}"><span class="emoji">${g.emoji}</span><h3>${g.name}<small>COMING SOON</small></h3></button>`).join('');$('#openCircle').onclick=()=>show('modes');}
-function renderModes(){$('#modeList').innerHTML=modes.map(m=>`<button class="mode-card" data-mode="${m.id}"><span class="mode-icon" style="--tint:${m.tint}">${m.icon}</span><span><h3>${m.title}</h3><p>${m.text}</p></span><b class="arrow">›</b></button>`).join('');document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>startGame(b.dataset.mode));}
-const canvas=$('#drawCanvas'),ctx=canvas.getContext('2d');function fitCanvas(c){const rect=c.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);c.width=rect.width*dpr;c.height=rect.height*dpr;return {w:rect.width,h:rect.height,dpr}}
-function setupCanvas(){let {dpr}=fitCanvas(canvas);ctx.setTransform(dpr,0,0,dpr,0,0);ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#f36aa3';ctx.lineWidth=5;}
-function clear(){points=[];ctx.clearRect(0,0,canvas.width,canvas.height);$('#drawHint').textContent='Draw one complete loop, then lift your finger.'}
-async function countdown(){const el=$('#countdown');el.classList.add('show');for(const n of ['3','2','1','GO!']){el.textContent=n;await new Promise(r=>setTimeout(r,n==='GO!'?500:700));}el.classList.remove('show');gameReady=true;startedAt=performance.now();$('#timer').textContent='3 SECONDS';challengeTimer=setTimeout(()=>finish(),3000)}
-function startGame(nextMode){mode=nextMode;show('play');setupCanvas();clear();gameReady=mode==='classic'||mode==='speed';$('#modeLabel').textContent=modes.find(m=>m.id===mode).title;$('#timer').textContent=mode==='speed'?'00.00 s':'DRAW A CIRCLE';$('#finishButton').style.display=mode==='challenge'?'none':'';if(mode==='challenge') countdown();else if(mode==='classic') startedAt=performance.now();}
-function point(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top,t:performance.now()}}
-canvas.addEventListener('pointerdown',e=>{if(!gameReady)return;e.preventDefault();canvas.setPointerCapture(e.pointerId);drawing=true;const p=point(e);points=[p];startedAt=mode==='speed'?p.t:startedAt;ctx.beginPath();ctx.moveTo(p.x,p.y);});canvas.addEventListener('pointermove',e=>{if(!drawing||!gameReady)return;e.preventDefault();const p=point(e),last=points[points.length-1];if(Math.hypot(p.x-last.x,p.y-last.y)<1.5)return;points.push(p);ctx.lineTo(p.x,p.y);ctx.stroke();});canvas.addEventListener('pointerup',e=>{if(!drawing)return;drawing=false;elapsed=performance.now()-startedAt;if(mode!=='classic') finish();else $('#drawHint').textContent='Nice trace! Tap Finish Drawing when you are ready.'});canvas.addEventListener('pointercancel',()=>drawing=false);
-function scoreDrawing(){const rect=canvas.getBoundingClientRect(),target={x:rect.width/2,y:rect.height/2};if(points.length<12)return null;const n=points.length,first=points[0],last=points[n-1];let cx=0,cy=0;points.forEach(p=>{cx+=p.x;cy+=p.y});cx/=n;cy/=n;const radii=points.map(p=>Math.hypot(p.x-cx,p.y-cy)),radius=radii.reduce((a,b)=>a+b,0)/n;if(radius<18)return null;const dev=Math.sqrt(radii.reduce((s,r)=>s+(r-radius)**2,0)/n)/radius;const centerDist=Math.hypot(cx-target.x,cy-target.y);const closure=Math.hypot(last.x-first.x,last.y-first.y)/radius;let totalAngle=0,prev=Math.atan2(points[0].y-cy,points[0].x-cx),sign=0,turns=0;for(let i=1;i<n;i++){let a=Math.atan2(points[i].y-cy,points[i].x-cx),d=a-prev;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;if(Math.abs(d)>.01){if(!sign)sign=Math.sign(d);if(Math.sign(d)===sign)turns+=Math.abs(d);else turns-=Math.abs(d)*.4}prev=a;}totalAngle=turns;const completeness=Math.min(1,totalAngle/(Math.PI*2));let jag=0;for(let i=2;i<n;i++){const a=Math.atan2(points[i-2].y-cy,points[i-2].x-cx),b=Math.atan2(points[i-1].y-cy,points[i-1].x-cx),c=Math.atan2(points[i].y-cy,points[i].x-cx);let d1=b-a,d2=c-b;while(d1>Math.PI)d1-=2*Math.PI;while(d1<-Math.PI)d1+=2*Math.PI;while(d2>Math.PI)d2-=2*Math.PI;while(d2<-Math.PI)d2+=2*Math.PI;jag+=Math.abs(d2-d1)}jag/=Math.max(1,n-2);const consistency=Math.exp(-4.1*dev),center=Math.exp(-2.7*centerDist/radius),complete=Math.max(0,Math.min(1,completeness))*Math.exp(-1.7*closure),smooth=Math.exp(-5*jag);let score=100*(.39*consistency+.31*center+.20*complete+.10*smooth);score=Math.max(0,Math.min(99.92,score));return{score,center,consistency,complete,smooth,radius,cx,cy,target,centerDist};}
-function finish(){if(!gameReady&&mode==='challenge')return;clearTimeout(challengeTimer);gameReady=false;drawing=false;elapsed=elapsed||performance.now()-startedAt;const data=scoreDrawing();if(!data){toast('Trace a full circle before finishing.');if(mode==='challenge')setTimeout(()=>startGame(mode),900);return;}showResult(data)}
-function showResult(d){const old=getBest(),newBest=d.score>old;if(newBest)localStorage.setItem(bestKey,d.score.toFixed(2));$('#mainScore').textContent=fmt(d.score);$('#newBest').classList.toggle('show',newBest);$('#resultMessage').textContent=d.score>=95?'PERFECT! 🔥':d.score>=90?'Excellent! 🏆':d.score>=80?'Great!':d.score>=70?'Good!':'Keep Practicing!';let insight=d.center<.7?'Your circle was slightly off-center.':d.complete<.78?'Your circle was very consistent, but incomplete.':d.consistency<.75?'Great center placement, but the radius varied.':'A wonderfully balanced orbit.';$('#insight').textContent=insight;const stats=[['CENTER',fmt(d.center*100)],['CONSISTENCY',fmt(d.consistency*100)],['COMPLETE',fmt(d.complete*100)],['RADIUS',`${Math.round(d.radius)} px`],['TIME',`${(elapsed/1000).toFixed(2)} s`],['BEST',fmt(Math.max(d.score,old))]];$('#statGrid').innerHTML=stats.map(s=>`<div class="stat"><b>${s[1]}</b><small>${s[0]}</small></div>`).join('');drawResult(d);show('results');}
-function drawResult(d){const c=$('#resultCanvas'),ctx2=c.getContext('2d'),r=c.getBoundingClientRect(),q=Math.min(devicePixelRatio||1,2);c.width=r.width*q;c.height=r.height*q;ctx2.setTransform(q,0,0,q,0,0);const scale=r.width/canvas.getBoundingClientRect().width,center={x:r.width/2,y:r.height/2};ctx2.strokeStyle='#48c8d7';ctx2.setLineDash([5,5]);ctx2.lineWidth=2;ctx2.beginPath();ctx2.arc(center.x,center.y,d.radius*scale,0,Math.PI*2);ctx2.stroke();ctx2.setLineDash([]);ctx2.strokeStyle='#f36aa3';ctx2.lineWidth=3;ctx2.lineCap='round';ctx2.lineJoin='round';ctx2.beginPath();points.forEach((p,i)=>{const x=p.x*scale,y=p.y*scale;i?ctx2.lineTo(x,y):ctx2.moveTo(x,y)});ctx2.stroke();}
-function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
-$('#finishButton').onclick=finish;$('#clearCanvas').onclick=clear;$('#quitGame').onclick=()=>{clearTimeout(challengeTimer);show('modes')};document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>show(b.dataset.go));$('#retryButton').onclick=()=>startGame(mode);$('#shareButton').onclick=async()=>{const message=`I scored ${$('#mainScore').textContent} on Circle Accuracy! 🎯 Can you beat me?`;try{if(navigator.share)await navigator.share({title:'Circle Accuracy',text:message,url:location.href});else{await navigator.clipboard.writeText(message);toast('Score copied to clipboard!')}}catch(e){if(e.name!=='AbortError')toast('Could not share this score.')}};$('#statsButton').onclick=()=>toast(getBest()?`Circle Accuracy best: ${fmt(getBest())}`:'Play Circle Accuracy to set a best!');renderHome();renderModes();
+const games = [
+  { name: 'Circle Accuracy', active: true },
+  { name: 'Reaction Rush', emoji: '⚡', color: '#ff9b6b' },
+  { name: 'Memory Match', emoji: '🧠', color: '#58b9d0' },
+  { name: 'Line Sprint', emoji: '📏', color: '#d075c6' },
+  { name: 'Color Pop', emoji: '🎨', color: '#86bc68' },
+  { name: 'Cup Toss', emoji: '🏓', color: '#e2b656' },
+];
+
+const $ = (selector) => document.querySelector(selector);
+const screens = document.querySelectorAll('.screen');
+const canvas = $('#drawCanvas');
+const context = canvas.getContext('2d');
+const bestKey = 'orbit-circle-best';
+let points = [];
+let drawing = false;
+let attemptFinished = false;
+let startedAt = 0;
+
+const formatPercent = (value) => `${value.toFixed(2)}%`;
+const getBest = () => Number(localStorage.getItem(bestKey) || 0);
+
+function show(screenId) {
+  screens.forEach((screen) => screen.classList.toggle('active', screen.id === screenId));
+  window.scrollTo(0, 0);
+}
+
+function renderHome() {
+  $('#gameGrid').innerHTML = games.map((game) => game.active
+    ? `<button class="game-card circle-card" id="openCircle"><div class="circle-art"></div><h3>${game.name}<small>DRAW TO WIN</small></h3></button>`
+    : `<button class="game-card soon" disabled style="--bg:${game.color}"><span class="emoji">${game.emoji}</span><h3>${game.name}<small>COMING SOON</small></h3></button>`).join('');
+  $('#openCircle').onclick = startGame;
+}
+
+function setCanvasSize() {
+  const bounds = canvas.getBoundingClientRect();
+  const scale = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = bounds.width * scale;
+  canvas.height = bounds.height * scale;
+  context.setTransform(scale, 0, 0, scale, 0, 0);
+  context.lineCap = 'round';
+  context.lineJoin = 'round';
+  context.strokeStyle = '#f36aa3';
+  context.lineWidth = 5;
+}
+
+function clearDrawing() {
+  points = [];
+  attemptFinished = false;
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  $('#drawHint').textContent = 'Draw a circle around the center dot. Any size is allowed.';
+}
+
+function startGame() {
+  show('play');
+  setCanvasSize();
+  clearDrawing();
+}
+
+function getPoint(event) {
+  const bounds = canvas.getBoundingClientRect();
+  return { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
+}
+
+function beginDrawing(event) {
+  if (attemptFinished) return;
+  event.preventDefault();
+  canvas.setPointerCapture(event.pointerId);
+  drawing = true;
+  startedAt = performance.now();
+  const firstPoint = getPoint(event);
+  points = [firstPoint];
+  context.beginPath();
+  context.moveTo(firstPoint.x, firstPoint.y);
+  $('#drawHint').textContent = 'Keep your radius steady, then release to score.';
+}
+
+function continueDrawing(event) {
+  if (!drawing || attemptFinished) return;
+  event.preventDefault();
+  const nextPoint = getPoint(event);
+  const previousPoint = points[points.length - 1];
+  if (Math.hypot(nextPoint.x - previousPoint.x, nextPoint.y - previousPoint.y) < 1.5) return;
+  points.push(nextPoint);
+  context.lineTo(nextPoint.x, nextPoint.y);
+  context.stroke();
+}
+
+function endDrawing(event) {
+  if (!drawing || attemptFinished) return;
+  if (event) event.preventDefault();
+  drawing = false;
+  attemptFinished = true;
+  scoreAttempt(performance.now() - startedAt);
+}
+
+/* Scores the player's selected radius from distances to the fixed center dot.
+   No target radius is ever stored or compared. */
+function scoreCircle(trace, target) {
+  if (trace.length < 12) return null;
+
+  const distances = trace.map((point) => Math.hypot(point.x - target.x, point.y - target.y));
+  const radius = distances.reduce((sum, distance) => sum + distance, 0) / distances.length;
+  if (radius < 16) return null;
+
+  const radiusDeviation = Math.sqrt(distances.reduce((sum, distance) => sum + (distance - radius) ** 2, 0) / distances.length) / radius;
+  const closure = Math.hypot(trace[0].x - trace.at(-1).x, trace[0].y - trace.at(-1).y) / radius;
+
+  let signedTravel = 0;
+  let previousAngle = Math.atan2(trace[0].y - target.y, trace[0].x - target.x);
+  let direction = 0;
+  let directionChanges = 0;
+  for (let index = 1; index < trace.length; index += 1) {
+    const angle = Math.atan2(trace[index].y - target.y, trace[index].x - target.x);
+    let delta = angle - previousAngle;
+    while (delta > Math.PI) delta -= Math.PI * 2;
+    while (delta < -Math.PI) delta += Math.PI * 2;
+    if (Math.abs(delta) > 0.004) {
+      const nextDirection = Math.sign(delta);
+      if (direction && nextDirection !== direction) directionChanges += 1;
+      direction = nextDirection;
+      signedTravel += Math.abs(delta);
+    }
+    previousAngle = angle;
+  }
+
+  const completeness = Math.min(1, signedTravel / (Math.PI * 2));
+  const fittedCenter = trace.reduce((total, point) => ({ x: total.x + point.x, y: total.y + point.y }), { x: 0, y: 0 });
+  fittedCenter.x /= trace.length;
+  fittedCenter.y /= trace.length;
+  const centerOffset = Math.hypot(fittedCenter.x - target.x, fittedCenter.y - target.y) / radius;
+
+  // Angle-step variation detects wobbly/reversed strokes without favoring a radius.
+  const smoothness = Math.exp(-directionChanges * 0.14) * Math.exp(-radiusDeviation * 0.9);
+  const consistency = Math.exp(-4.6 * radiusDeviation);
+  const centerAccuracy = Math.exp(-2.9 * centerOffset);
+  const completionAccuracy = completeness * Math.exp(-1.8 * closure);
+  const score = Math.min(99.92, Math.max(0, 100 * (
+    0.42 * consistency + 0.32 * centerAccuracy + 0.18 * completionAccuracy + 0.08 * smoothness
+  )));
+
+  return { score, radius, consistency, centerAccuracy, completionAccuracy, centerOffset };
+}
+
+function scoreAttempt(duration) {
+  const bounds = canvas.getBoundingClientRect();
+  const score = scoreCircle(points, { x: bounds.width / 2, y: bounds.height / 2 });
+  if (!score) {
+    attemptFinished = false;
+    $('#drawHint').textContent = 'Draw a complete circle, then release to score.';
+    toast('Make one larger, complete loop around the dot.');
+    return;
+  }
+  showResult(score, duration);
+}
+
+function resultMessage(score) {
+  if (score >= 95) return 'PERFECT! 🔥';
+  if (score >= 90) return 'Excellent! 🏆';
+  if (score >= 80) return 'Great!';
+  if (score >= 70) return 'Good!';
+  return 'Keep Practicing!';
+}
+
+function resultInsight(data) {
+  if (data.centerAccuracy < 0.7) return 'Your circle was slightly off-center from the dot.';
+  if (data.completionAccuracy < 0.72) return 'Your circle was consistent, but the loop was incomplete.';
+  if (data.consistency < 0.75) return 'Great center placement, but the radius varied.';
+  return 'Balanced center placement and a steady radius.';
+}
+
+function showResult(data, duration) {
+  const previousBest = getBest();
+  const isNewBest = data.score > previousBest;
+  if (isNewBest) localStorage.setItem(bestKey, data.score.toFixed(2));
+  $('#mainScore').textContent = formatPercent(data.score);
+  $('#resultMessage').textContent = resultMessage(data.score);
+  $('#newBest').classList.toggle('show', isNewBest);
+  $('#insight').textContent = resultInsight(data);
+  const stats = [
+    ['CENTER', formatPercent(data.centerAccuracy * 100)],
+    ['CONSISTENCY', formatPercent(data.consistency * 100)],
+    ['COMPLETE', formatPercent(data.completionAccuracy * 100)],
+    ['RADIUS', `${Math.round(data.radius)} px`],
+    ['DRAW TIME', `${(duration / 1000).toFixed(2)} s`],
+    ['BEST', formatPercent(Math.max(data.score, previousBest))],
+  ];
+  $('#statGrid').innerHTML = stats.map(([label, value]) => `<div class="stat"><b>${value}</b><small>${label}</small></div>`).join('');
+  drawComparison(data.radius);
+  show('results');
+}
+
+function drawComparison(radius) {
+  const resultCanvas = $('#resultCanvas');
+  const resultContext = resultCanvas.getContext('2d');
+  const bounds = resultCanvas.getBoundingClientRect();
+  const scale = Math.min(window.devicePixelRatio || 1, 2);
+  resultCanvas.width = bounds.width * scale;
+  resultCanvas.height = bounds.height * scale;
+  resultContext.setTransform(scale, 0, 0, scale, 0, 0);
+  const sourceWidth = canvas.getBoundingClientRect().width;
+  const ratio = bounds.width / sourceWidth;
+  const center = bounds.width / 2;
+  resultContext.strokeStyle = '#48c8d7';
+  resultContext.setLineDash([5, 5]);
+  resultContext.lineWidth = 2;
+  resultContext.beginPath();
+  resultContext.arc(center, center, radius * ratio, 0, Math.PI * 2);
+  resultContext.stroke();
+  resultContext.setLineDash([]);
+  resultContext.strokeStyle = '#f36aa3';
+  resultContext.lineWidth = 3;
+  resultContext.lineCap = 'round';
+  resultContext.lineJoin = 'round';
+  resultContext.beginPath();
+  points.forEach((point, index) => (index ? resultContext.lineTo(point.x * ratio, point.y * ratio) : resultContext.moveTo(point.x * ratio, point.y * ratio)));
+  resultContext.stroke();
+}
+
+function toast(message) {
+  const notification = $('#toast');
+  notification.textContent = message;
+  notification.classList.add('show');
+  setTimeout(() => notification.classList.remove('show'), 2200);
+}
+
+canvas.addEventListener('pointerdown', beginDrawing);
+canvas.addEventListener('pointermove', continueDrawing);
+canvas.addEventListener('pointerup', endDrawing);
+canvas.addEventListener('pointercancel', endDrawing);
+canvas.addEventListener('lostpointercapture', endDrawing);
+$('#clearCanvas').onclick = clearDrawing;
+$('#quitGame').onclick = () => show('home');
+$('#retryButton').onclick = startGame;
+document.querySelectorAll('[data-go]').forEach((button) => { button.onclick = () => show(button.dataset.go); });
+$('#shareButton').onclick = async () => {
+  const message = `I scored ${$('#mainScore').textContent} on Circle Accuracy! 🎯 Can you beat me?`;
+  try {
+    if (navigator.share) await navigator.share({ title: 'Circle Accuracy', text: message, url: location.href });
+    else {
+      await navigator.clipboard.writeText(message);
+      toast('Score copied to clipboard!');
+    }
+  } catch (error) {
+    if (error.name !== 'AbortError') toast('Could not share this score.');
+  }
+};
+$('#statsButton').onclick = () => toast(getBest() ? `Circle Accuracy best: ${formatPercent(getBest())}` : 'Play Circle Accuracy to set a best!');
+renderHome();
