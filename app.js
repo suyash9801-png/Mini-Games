@@ -49,6 +49,8 @@ function clearDrawing() {
   attemptFinished = false;
   context.clearRect(0, 0, canvas.width, canvas.height);
   $('#drawHint').textContent = 'Draw a circle around the center dot. Any size is allowed.';
+  $('#inlineResult').classList.remove('show');
+  $('#newBest').classList.remove('show');
 }
 
 function startGame() {
