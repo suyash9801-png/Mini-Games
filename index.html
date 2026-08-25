@@ -18,17 +18,28 @@
       <section class="games"><div class="section-heading"><h2>GAME ROOM</h2><span>01 / 06</span></div><div id="gameGrid" class="game-grid"></div></section>
     </section>
 
+    <section id="modes" class="screen" aria-label="Circle Accuracy mode selection">
+      <header class="topbar compact"><button class="back icon-button" data-go="home" aria-label="Back">←</button><div class="game-brand">CIRCLE <b>ACCURACY</b></div><span class="top-spacer"></span></header>
+      <div class="mode-intro"><div class="target-art"><i></i><i></i><i></i><b></b></div><p class="eyebrow">ORBIT ARCADE / 01</p><h1>Circle<br><em>Accuracy</em></h1><p class="lede">Trace a smooth circle around the fixed center. Any radius can win — steady shape and placement matter.</p></div>
+      <div class="best-strip">PERSONAL BEST <strong id="modeBest">—</strong></div>
+      <div class="mode-list" id="modeList"></div>
+    </section>
+
     <section id="play" class="screen game-screen" aria-label="Circle Accuracy game">
-      <header class="game-top"><button class="quit" id="quitGame" aria-label="Return home">×</button><div><span>CIRCLE ACCURACY</span><strong>ANY SIZE. ONE CENTER.</strong></div><button class="clear" id="clearCanvas">CLEAR</button></header>
-      <div class="canvas-wrap" id="canvasWrap"><canvas id="drawCanvas"></canvas><div class="center-dot" aria-label="Fixed center dot"></div></div>
-      <p class="draw-hint" id="drawHint">Draw a circle around the center dot. Any size is allowed.</p>
-      <section id="inlineResult" class="inline-result" aria-live="polite" aria-label="Attempt score">
-        <div id="newBest" class="new-best">🏆 NEW PERSONAL BEST!</div>
-        <div class="score-block"><p>YOUR ACCURACY</p><h1 id="mainScore">0.00%</h1><h2 id="resultMessage">Keep Practicing!</h2></div>
-        <p id="insight" class="insight"></p>
-        <div class="stat-grid" id="statGrid"></div>
-        <button class="secondary share-inline" id="shareButton">SHARE SCORE</button>
-      </section>
+      <header class="game-top"><button class="quit" id="quitGame">×</button><div><span id="modeLabel">CLASSIC</span><strong id="timer">DRAW A CIRCLE</strong></div><button class="clear" id="clearCanvas">CLEAR</button></header>
+      <div class="canvas-wrap" id="canvasWrap"><canvas id="drawCanvas"></canvas><div class="center-dot" aria-label="Fixed center dot"></div><div id="countdown" class="countdown"></div></div>
+      <p class="draw-hint" id="drawHint">Draw one complete loop, then lift your finger.</p>
+      <button id="finishButton" class="primary finish">FINISH DRAWING <span>→</span></button>
+    </section>
+
+    <section id="results" class="screen result-screen" aria-label="Circle Accuracy results"
+      <header class="topbar compact"><button class="back icon-button" data-go="modes" aria-label="Change mode">←</button><div class="game-brand">CIRCLE <b>ACCURACY</b></div><span class="top-spacer"></span></header>
+      <div id="newBest" class="new-best">🏆 NEW PERSONAL BEST!</div>
+      <div class="score-block"><p>YOUR ACCURACY</p><h1 id="mainScore">0.00%</h1><h2 id="resultMessage">Keep Practicing!</h2></div>
+      <div class="comparison"><canvas id="resultCanvas"></canvas><div class="result-dot"></div><span class="legend player"></span><small>YOUR TRACE</small><span class="legend ideal"></span><small>IDEAL CIRCLE</small></div>
+      <p id="insight" class="insight"></p>
+      <div class="stat-grid" id="statGrid"></div>
+      <div class="result-actions"><button class="secondary" id="shareButton">SHARE SCORE</button><button class="primary" id="retryButton">TRY AGAIN</button></div><button class="home-link" data-go="home">⌂ HOME</button>
     </section>
   </main>
   <div id="toast" class="toast" role="status"></div>

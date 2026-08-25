@@ -65,7 +65,7 @@ function getPoint(event) {
 }
 
 function beginDrawing(event) {
-  if (attemptFinished) clearDrawing();
+  if (attemptFinished) return;
   event.preventDefault();
   canvas.setPointerCapture(event.pointerId);
   drawing = true;
@@ -188,8 +188,35 @@ function showResult(data, duration) {
     ['BEST', formatPercent(Math.max(data.score, previousBest))],
   ];
   $('#statGrid').innerHTML = stats.map(([label, value]) => `<div class="stat"><b>${value}</b><small>${label}</small></div>`).join('');
-  $('#inlineResult').classList.add('show');
-  $('#drawHint').textContent = 'Tap the drawing area to clear this attempt and draw again.';
+  drawComparison(data.radius);
+  show('results');
+}
+
+function drawComparison(radius) {
+  const resultCanvas = $('#resultCanvas');
+  const resultContext = resultCanvas.getContext('2d');
+  const bounds = resultCanvas.getBoundingClientRect();
+  const scale = Math.min(window.devicePixelRatio || 1, 2);
+  resultCanvas.width = bounds.width * scale;
+  resultCanvas.height = bounds.height * scale;
+  resultContext.setTransform(scale, 0, 0, scale, 0, 0);
+  const sourceWidth = canvas.getBoundingClientRect().width;
+  const ratio = bounds.width / sourceWidth;
+  const center = bounds.width / 2;
+  resultContext.strokeStyle = '#48c8d7';
+  resultContext.setLineDash([5, 5]);
+  resultContext.lineWidth = 2;
+  resultContext.beginPath();
+  resultContext.arc(center, center, radius * ratio, 0, Math.PI * 2);
+  resultContext.stroke();
+  resultContext.setLineDash([]);
+  resultContext.strokeStyle = '#f36aa3';
+  resultContext.lineWidth = 3;
+  resultContext.lineCap = 'round';
+  resultContext.lineJoin = 'round';
+  resultContext.beginPath();
+  points.forEach((point, index) => (index ? resultContext.lineTo(point.x * ratio, point.y * ratio) : resultContext.moveTo(point.x * ratio, point.y * ratio)));
+  resultContext.stroke();
 }
 
 function toast(message) {
@@ -206,6 +233,7 @@ canvas.addEventListener('pointercancel', endDrawing);
 canvas.addEventListener('lostpointercapture', endDrawing);
 $('#clearCanvas').onclick = clearDrawing;
 $('#quitGame').onclick = () => show('home');
+$('#retryButton').onclick = startGame;
 document.querySelectorAll('[data-go]').forEach((button) => { button.onclick = () => show(button.dataset.go); });
 $('#shareButton').onclick = async () => {
   const message = `I scored ${$('#mainScore').textContent} on Circle Accuracy! 🎯 Can you beat me?`;
