@@ -65,7 +65,7 @@ function getPoint(event) {
 }
 
 function beginDrawing(event) {
-  if (attemptFinished) return;
+  if (attemptFinished) clearDrawing();
   event.preventDefault();
   canvas.setPointerCapture(event.pointerId);
   drawing = true;
@@ -233,7 +233,6 @@ canvas.addEventListener('pointercancel', endDrawing);
 canvas.addEventListener('lostpointercapture', endDrawing);
 $('#clearCanvas').onclick = clearDrawing;
 $('#quitGame').onclick = () => show('home');
-$('#retryButton').onclick = startGame;
 document.querySelectorAll('[data-go]').forEach((button) => { button.onclick = () => show(button.dataset.go); });
 $('#shareButton').onclick = async () => {
   const message = `I scored ${$('#mainScore').textContent} on Circle Accuracy! 🎯 Can you beat me?`;
